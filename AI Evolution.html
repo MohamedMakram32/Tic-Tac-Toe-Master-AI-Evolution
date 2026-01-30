@@ -1,0 +1,508 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe Master - لعبة إكس أو المحترفة</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&family=Poppins:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Tajawal', 'Poppins', sans-serif;
+            background: radial-gradient(circle at center, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: white;
+            overflow-x: hidden;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+        }
+
+        .cell {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+        }
+
+        .cell:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(1.05);
+        }
+
+        .cell.winner {
+            background: #4ecca3 !important;
+            color: #1a1a2e !important;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .robot-container {
+            position: relative;
+            width: 120px;
+            height: 120px;
+        }
+
+        .robot-bubble {
+            position: absolute;
+            top: -40px;
+            right: 50%;
+            transform: translateX(50%);
+            background: white;
+            color: black;
+            padding: 8px 15px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .robot-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            border: 5px solid transparent;
+            border-top-color: white;
+        }
+
+        .thinking .robot-bubble { opacity: 1; }
+
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            z-index: 1000;
+        }
+
+        .hidden-screen { display: none !important; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1a1a2e; }
+        ::-webkit-scrollbar-thumb { background: #4ecca3; border-radius: 10px; }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center p-4">
+
+    <!-- Screen 1: Language Selection -->
+    <div id="language-screen" class="glass-panel p-8 w-full max-w-2xl text-center">
+        <h1 class="text-3xl font-bold mb-8">Choose Your Language / اختر لغتك</h1>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="lang-grid">
+            <!-- Languages populated via JS -->
+        </div>
+    </div>
+
+    <!-- Screen 2: Mode & Difficulty Selection -->
+    <div id="setup-screen" class="glass-panel p-8 w-full max-w-lg hidden-screen text-center">
+        <h2 class="text-2xl font-bold mb-6" id="setup-title">Settings</h2>
+        
+        <div class="mb-8">
+            <p class="mb-4 opacity-75" id="label-mode">Select Game Mode</p>
+            <div class="flex gap-4 justify-center">
+                <button onclick="setMode('pvp')" class="px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-500 transition-colors w-1/2" id="btn-pvp">Vs Friend</button>
+                <button onclick="setMode('pve')" class="px-6 py-3 rounded-full bg-purple-600 hover:bg-purple-500 transition-colors w-1/2" id="btn-pve">Vs Robot</button>
+            </div>
+        </div>
+
+        <div id="difficulty-section" class="mb-8 hidden-screen">
+            <p class="mb-4 opacity-75" id="label-diff">Difficulty Level (1-10)</p>
+            <input type="range" id="diff-range" min="1" max="10" value="1" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-emerald-400">
+            <div class="flex justify-between mt-2 text-sm">
+                <span id="diff-status">Easy (1)</span>
+                <span id="diff-val">1</span>
+            </div>
+        </div>
+
+        <button onclick="startGame()" class="w-full py-4 mt-4 rounded-xl bg-emerald-500 font-bold text-xl hover:bg-emerald-400 transition-all transform hover:scale-105" id="btn-start">
+            Start Game
+        </button>
+    </div>
+
+    <!-- Screen 3: Main Game -->
+    <div id="game-screen" class="w-full max-w-md hidden-screen">
+        <!-- Scoreboard -->
+        <div class="flex justify-between items-center mb-6 glass-panel p-4">
+            <div class="text-center">
+                <p class="text-sm opacity-70" id="score-p1-label">Player X</p>
+                <p class="text-2xl font-bold" id="score-p1">0</p>
+            </div>
+            <div class="flex flex-col items-center">
+                <div class="robot-container" id="robot-ui">
+                    <div class="robot-bubble" id="robot-msg">Thinking...</div>
+                    <svg viewBox="0 0 100 100" class="w-full h-full">
+                        <circle cx="50" cy="50" r="45" fill="#2d3436" stroke="#4ecca3" stroke-width="2"/>
+                        <circle cx="35" cy="40" r="5" fill="#4ecca3" id="eye-l"/>
+                        <circle cx="65" cy="40" r="5" fill="#4ecca3" id="eye-r"/>
+                        <path d="M 35 70 Q 50 80 65 70" fill="none" stroke="#4ecca3" stroke-width="3" stroke-linecap="round" id="mouth"/>
+                        <rect x="45" y="5" width="10" height="15" fill="#4ecca3"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="text-center">
+                <p class="text-sm opacity-70" id="score-p2-label">Robot/Player O</p>
+                <p class="text-2xl font-bold" id="score-p2">0</p>
+            </div>
+        </div>
+
+        <!-- Board -->
+        <div class="grid grid-cols-3 gap-3 mb-6" id="board">
+            <div class="cell" data-index="0"></div>
+            <div class="cell" data-index="1"></div>
+            <div class="cell" data-index="2"></div>
+            <div class="cell" data-index="3"></div>
+            <div class="cell" data-index="4"></div>
+            <div class="cell" data-index="5"></div>
+            <div class="cell" data-index="6"></div>
+            <div class="cell" data-index="7"></div>
+            <div class="cell" data-index="8"></div>
+        </div>
+
+        <!-- Controls -->
+        <div class="flex gap-4">
+            <button onclick="resetGame()" class="flex-1 py-3 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors" id="btn-reset">Reset</button>
+            <button onclick="showSetup()" class="flex-1 py-3 rounded-lg bg-red-900 hover:bg-red-800 transition-colors" id="btn-back">Settings</button>
+        </div>
+    </div>
+
+    <script>
+        // --- Translations ---
+        const translations = {
+            ar: { name: 'العربية', title: 'إعدادات اللعبة', mode: 'اختر وضع اللعب', pvp: 'ضد صديق', pve: 'ضد الروبوت', diff: 'مستوى الصعوبة', start: 'ابدأ اللعب', reset: 'إعادة تعيين', back: 'القائمة الرئيسية', think: 'أفكر...', win: 'سأفوز حتماً!', lose: 'مستحيل! سأخسر؟', easy: 'سهل', med: 'متوسط', hard: 'صعب جداً', scoreX: 'اللاعب X', scoreO: 'اللاعب O', scoreBot: 'الروبوت' },
+            en: { name: 'English', title: 'Game Settings', mode: 'Select Mode', pvp: 'Vs Friend', pve: 'Vs Robot', diff: 'Difficulty', start: 'Start', reset: 'Reset', back: 'Menu', think: 'Thinking...', win: 'I will win!', lose: 'Am I losing?', easy: 'Easy', med: 'Medium', hard: 'Impossible', scoreX: 'Player X', scoreO: 'Player O', scoreBot: 'Robot' },
+            fr: { name: 'Français', title: 'Paramètres', mode: 'Mode de jeu', pvp: 'Vs Ami', pve: 'Vs Robot', diff: 'Difficulté', start: 'Démarrer', reset: 'Réinitialiser', back: 'Menu', think: 'Je pense...', win: 'Je gagne!', lose: 'Je perds?', easy: 'Facile', med: 'Moyen', hard: 'Impossible', scoreX: 'Joueur X', scoreO: 'Joueur O', scoreBot: 'Robot' },
+            es: { name: 'Español', title: 'Ajustes', mode: 'Modo', pvp: 'Vs Amigo', pve: 'Vs Robot', diff: 'Dificultad', start: 'Jugar', reset: 'Reiniciar', back: 'Menú', think: 'Pensando...', win: '¡Ganaré!', lose: '¿Pierdo?', easy: 'Fácil', med: 'Medio', hard: 'Imposible', scoreX: 'Jugador X', scoreO: 'Jugador O', scoreBot: 'Robot' },
+            de: { name: 'Deutsch', title: 'Einstellungen', mode: 'Modus', pvp: 'Vs Freund', pve: 'Vs Robot', diff: 'Schwierigkeit', start: 'Start', reset: 'Reset', back: 'Menü', think: 'Ich denke...', win: 'Ich gewinne!', lose: 'Verliere ich?', easy: 'Einfach', med: 'Mittel', hard: 'Unmöglich', scoreX: 'Spieler X', scoreO: 'Spieler O', scoreBot: 'Robot' },
+            tr: { name: 'Türkçe', title: 'Ayarlar', mode: 'Mod Seç', pvp: 'Arkadaşa Karşı', pve: 'Robota Karşı', diff: 'Zorluk', start: 'Başla', reset: 'Sıfırla', back: 'Menü', think: 'Düşünüyorum...', win: 'Kazanacağım!', lose: 'Kaybediyor muyum?', easy: 'Kolay', med: 'Orta', hard: 'İmkansız', scoreX: 'Oyuncu X', scoreO: 'Oyuncu O', scoreBot: 'Robot' },
+            it: { name: 'Italiano', title: 'Impostazioni', mode: 'Modalità', pvp: 'Vs Amico', pve: 'Vs Robot', diff: 'Difficoltà', start: 'Inizia', reset: 'Reset', back: 'Menu', think: 'Sto pensando...', win: 'Vincerò!', lose: 'Sto perdendo?', easy: 'Facile', med: 'Medio', hard: 'Impossibile', scoreX: 'Giocatore X', scoreO: 'Giocatore O', scoreBot: 'Robot' },
+            ru: { name: 'Русский', title: 'Настройки', mode: 'Режим', pvp: 'С другом', pve: 'С роботом', diff: 'Сложность', start: 'Старт', reset: 'Сброс', back: 'Меню', think: 'Думаю...', win: 'Я выиграю!', lose: 'Я проигрываю?', easy: 'Легко', med: 'Средне', hard: 'Невозможно', scoreX: 'Игрок X', scoreO: 'Игрок O', scoreBot: 'Робот' },
+            zh: { name: '中文', title: '设置', mode: '选择模式', pvp: '多人对战', pve: '人机对战', diff: '难度', start: '开始', reset: '重置', back: '菜单', think: '思考中...', win: '我会赢！', lose: '我要输了吗？', easy: '简单', med: '中等', hard: '非常难', scoreX: '玩家 X', scoreO: '玩家 O', scoreBot: '机器人' },
+            ja: { name: '日本語', title: '設定', mode: 'モード選択', pvp: '対人戦', pve: '対ロボット', diff: '難易度', start: '開始', reset: 'リセット', back: 'メニュー', think: '考え中...', win: '勝つぞ！', lose: '負けるのか？', easy: '簡単', med: '普通', hard: '最強', scoreX: 'プレイヤー X', scoreO: 'プレイヤー O', scoreBot: 'ロボット' },
+            ko: { name: '한국어', title: '설정', mode: '모드 선택', pvp: '친구와 함께', pve: '로봇과 함께', diff: '난이도', start: '시작', reset: '초기화', back: '메뉴', think: '생각 중...', win: '내가 이긴다!', lose: '지고 있나?', easy: '쉬움', med: '보통', hard: '불가능', scoreX: '플레이어 X', scoreO: '플레이어 O', scoreBot: '로봇' },
+            hi: { name: 'हिन्दी', title: 'सेटिंग्स', mode: 'मोड चुनें', pvp: 'दोस्त बनाम', pve: 'रोबोट बनाम', diff: 'कठिनाई', start: 'शुरू', reset: 'रीसेट', back: 'मेनू', think: 'सोच रहा हूँ...', win: 'मैं जीतूँगा!', lose: 'क्या मैं हार रहा हूँ?', easy: 'आसान', med: 'मध्यम', hard: 'असंभव', scoreX: 'खिलाड़ी X', scoreO: 'खिलाड़ी O', scoreBot: 'रोबोट' },
+            pt: { name: 'Português', title: 'Configurações', mode: 'Modo', pvp: 'Vs Amigo', pve: 'Vs Robô', diff: 'Dificuldade', start: 'Iniciar', reset: 'Resetar', back: 'Menu', think: 'Pensando...', win: 'Eu vou vencer!', lose: 'Estou perdendo?', easy: 'Fácil', med: 'Médio', hard: 'Impossível', scoreX: 'Jogador X', scoreO: 'Jogador O', scoreBot: 'Robô' },
+            nl: { name: 'Nederlands', title: 'Instellingen', mode: 'Modus', pvp: 'Vs Vriend', pve: 'Vs Robot', diff: 'Moeilijkheid', start: 'Start', reset: 'Reset', back: 'Menu', think: 'Denken...', win: 'Ik win!', lose: 'Verlies ik?', easy: 'Makkelijk', med: 'Gemiddeld', hard: 'Onmogelijk', scoreX: 'Speler X', scoreO: 'Speler O', scoreBot: 'Robot' },
+            fa: { name: 'فارسی', title: 'تنظیمات', mode: 'انتخاب حالت', pvp: 'با دوست', pve: 'با ربات', diff: 'سختی', start: 'شروع', reset: 'تنظیم مجدد', back: 'منو', think: 'در حال فکر...', win: 'من میبرم!', lose: 'دارم میبازم؟', easy: 'آسان', med: 'متوسط', hard: 'غیرممکن', scoreX: 'بازیکن X', scoreO: 'بازیکن O', scoreBot: 'ربات' },
+            he: { name: 'עברית', title: 'הגדרות', mode: 'בחר מצב', pvp: 'נגד חבר', pve: 'נגד רובוט', diff: 'רמת קושי', start: 'התחל', reset: 'איפוס', back: 'תפריט', think: 'חושב...', win: 'אני אנצח!', lose: 'אני מפסיד?', easy: 'קל', med: 'בינוני', hard: 'בלתי אפשרי', scoreX: 'שחקן X', scoreO: 'שחקן O', scoreBot: 'רובוט' },
+            vi: { name: 'Tiếng Việt', title: 'Cài đặt', mode: 'Chọn chế độ', pvp: 'Vs Bạn', pve: 'Vs Robot', diff: 'Độ khó', start: 'Bắt đầu', reset: 'Đặt lại', back: 'Menu', think: 'Đang nghĩ...', win: 'Tôi sẽ thắng!', lose: 'Tôi đang thua sao?', easy: 'Dễ', med: 'Trung bình', hard: 'Khó nhất', scoreX: 'Người chơi X', scoreO: 'Người chơi O', scoreBot: 'Robot' },
+            th: { name: 'ไทย', title: 'ตั้งค่า', mode: 'เลือกโหมด', pvp: 'แข่งกับเพื่อน', pve: 'แข่งกับหุ่นยนต์', diff: 'ความยาก', start: 'เริ่ม', reset: 'รีเซ็ต', back: 'เมนู', think: 'กำลังคิด...', win: 'ฉันจะชนะ!', lose: 'ฉันกำลังจะแพ้เหรอ?', easy: 'ง่าย', med: 'ปานกลาง', hard: 'ยากที่สุด', scoreX: 'ผู้เล่น X', scoreO: 'ผู้เล่น O', scoreBot: 'หุ่นยนต์' },
+            id: { name: 'Bahasa Indonesia', title: 'Pengaturan', mode: 'Pilih Mode', pvp: 'Vs Teman', pve: 'Vs Robot', diff: 'Kesulitan', start: 'Mulai', reset: 'Reset', back: 'Menu', think: 'Berpikir...', win: 'Saya menang!', lose: 'Saya kalah?', easy: 'Mudah', med: 'Sedang', hard: 'Sangat Sulit', scoreX: 'Pemain X', scoreO: 'Pemain O', scoreBot: 'Robot' },
+            el: { name: 'Ελληνικά', title: 'Ρυθμίσεις', mode: 'Επιλογή Mode', pvp: 'Vs Φίλο', pve: 'Vs Ρομπότ', diff: 'Δυσκολία', start: 'Έναρξη', reset: 'Επαναφορά', back: 'Μενού', think: 'Σκέφτομαι...', win: 'Θα κερδίσω!', lose: 'Χάνω;', easy: 'Εύκολο', med: 'Μέτριο', hard: 'Αδύνατο', scoreX: 'Παίκτης X', scoreO: 'Παίκτης O', scoreBot: 'Ρομπότ' }
+        };
+
+        // --- Game State ---
+        let currentLang = 'ar';
+        let gameMode = 'pve'; // pvp or pve
+        let difficulty = 1;
+        let board = Array(9).fill(null);
+        let currentPlayer = 'X';
+        let scores = { X: 0, O: 0 };
+        let isGameActive = false;
+        let isThinking = false;
+
+        // --- UI Setup ---
+        const langGrid = document.getElementById('lang-grid');
+        Object.keys(translations).forEach(key => {
+            const btn = document.createElement('button');
+            btn.className = "p-3 glass-panel hover:bg-emerald-500 hover:text-white transition-all text-sm";
+            btn.innerText = translations[key].name;
+            btn.onclick = () => selectLanguage(key);
+            langGrid.appendChild(btn);
+        });
+
+        function selectLanguage(lang) {
+            currentLang = lang;
+            document.body.dir = (lang === 'ar' || lang === 'fa' || lang === 'he') ? 'rtl' : 'ltr';
+            updateUIStrings();
+            document.getElementById('language-screen').classList.add('hidden-screen');
+            document.getElementById('setup-screen').classList.remove('hidden-screen');
+        }
+
+        function updateUIStrings() {
+            const t = translations[currentLang];
+            document.getElementById('setup-title').innerText = t.title;
+            document.getElementById('label-mode').innerText = t.mode;
+            document.getElementById('btn-pvp').innerText = t.pvp;
+            document.getElementById('btn-pve').innerText = t.pve;
+            document.getElementById('label-diff').innerText = t.diff;
+            document.getElementById('btn-start').innerText = t.start;
+            document.getElementById('btn-reset').innerText = t.reset;
+            document.getElementById('btn-back').innerText = t.back;
+            document.getElementById('score-p1-label').innerText = t.scoreX;
+            updateDifficultyLabel();
+        }
+
+        function updateDifficultyLabel() {
+            const t = translations[currentLang];
+            const val = document.getElementById('diff-range').value;
+            difficulty = parseInt(val);
+            document.getElementById('diff-val').innerText = val;
+            let status = t.easy;
+            if (val >= 5 && val <= 8) status = t.med;
+            if (val >= 9) status = t.hard;
+            document.getElementById('diff-status').innerText = status + " (" + val + ")";
+        }
+
+        document.getElementById('diff-range').oninput = updateDifficultyLabel;
+
+        function setMode(mode) {
+            gameMode = mode;
+            document.getElementById('btn-pvp').classList.toggle('ring-4', mode === 'pvp');
+            document.getElementById('btn-pvp').classList.toggle('ring-white', mode === 'pvp');
+            document.getElementById('btn-pve').classList.toggle('ring-4', mode === 'pve');
+            document.getElementById('btn-pve').classList.toggle('ring-white', mode === 'pve');
+            document.getElementById('difficulty-section').classList.toggle('hidden-screen', mode === 'pvp');
+        }
+
+        function startGame() {
+            const t = translations[currentLang];
+            document.getElementById('score-p2-label').innerText = gameMode === 'pve' ? t.scoreBot : t.scoreO;
+            document.getElementById('setup-screen').classList.add('hidden-screen');
+            document.getElementById('game-screen').classList.remove('hidden-screen');
+            resetGame();
+        }
+
+        function showSetup() {
+            document.getElementById('game-screen').classList.add('hidden-screen');
+            document.getElementById('setup-screen').classList.remove('hidden-screen');
+        }
+
+        // --- Core Game Logic ---
+        const cells = document.querySelectorAll('.cell');
+        cells.forEach(cell => cell.onclick = handleCellClick);
+
+        function handleCellClick(e) {
+            if (!isGameActive || isThinking) return;
+            const index = e.target.getAttribute('data-index');
+            if (board[index]) return;
+
+            makeMove(index, currentPlayer);
+
+            if (checkWin(currentPlayer)) {
+                endGame(currentPlayer);
+            } else if (board.every(cell => cell !== null)) {
+                endGame('draw');
+            } else {
+                currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                if (gameMode === 'pve' && currentPlayer === 'O') {
+                    robotMove();
+                }
+            }
+        }
+
+        function makeMove(index, player) {
+            board[index] = player;
+            const cell = cells[index];
+            cell.innerText = player;
+            cell.classList.add(player === 'X' ? 'text-blue-400' : 'text-rose-400');
+        }
+
+        function checkWin(player, currentBoard = board) {
+            const winPatterns = [
+                [0,1,2], [3,4,5], [6,7,8], // rows
+                [0,3,6], [1,4,7], [2,5,8], // cols
+                [0,4,8], [2,4,6]           // diagonals
+            ];
+            return winPatterns.find(pattern => 
+                pattern.every(index => currentBoard[index] === player)
+            );
+        }
+
+        function endGame(result) {
+            isGameActive = false;
+            if (result === 'draw') {
+                talkRobot('Hmm, Draw!');
+            } else {
+                if (result === 'X') {
+                    scores.X++;
+                    if (gameMode === 'pve') {
+                        talkRobot(translations[currentLang].lose);
+                        scores.O = Math.max(0, scores.O - 1); // Decrease robot score on loss
+                    }
+                    launchConfetti();
+                } else {
+                    scores.O++;
+                    if (gameMode === 'pve') {
+                        talkRobot(translations[currentLang].win);
+                        scores.X = Math.max(0, scores.X - 1); // Decrease player score on loss
+                    }
+                }
+                highlightWinner(checkWin(result));
+            }
+            updateScores();
+        }
+
+        function highlightWinner(indices) {
+            indices.forEach(i => cells[i].classList.add('winner'));
+        }
+
+        function updateScores() {
+            document.getElementById('score-p1').innerText = scores.X;
+            document.getElementById('score-p2').innerText = scores.O;
+        }
+
+        function resetGame() {
+            board = Array(9).fill(null);
+            currentPlayer = 'X';
+            isGameActive = true;
+            isThinking = false;
+            cells.forEach(cell => {
+                cell.innerText = '';
+                cell.classList.remove('winner', 'text-blue-400', 'text-rose-400');
+            });
+            if (gameMode === 'pve') talkRobot('Hello! Let\'s play.');
+        }
+
+        // --- Robot Logic ---
+        function talkRobot(msg) {
+            const bubble = document.getElementById('robot-msg');
+            const ui = document.getElementById('robot-ui');
+            bubble.innerText = msg;
+            ui.classList.add('thinking');
+            setTimeout(() => ui.classList.remove('thinking'), 2500);
+        }
+
+        function robotMove() {
+            isThinking = true;
+            talkRobot(translations[currentLang].think);
+            
+            // Artificial delay to feel like it's thinking
+            setTimeout(() => {
+                let move;
+                
+                // Difficulty Logic
+                const chance = Math.random() * 10;
+                
+                // If Level 10 or very hard, use Minimax. 
+                // Level 1: fully random
+                // Level 5: 50/50
+                if (difficulty === 1) {
+                    move = getRandomMove();
+                } else if (difficulty < 5) {
+                    move = (Math.random() * 10 < difficulty * 2) ? getBestMove() : getRandomMove();
+                } else if (difficulty < 9) {
+                    move = (Math.random() * 10 < difficulty + 1) ? getBestMove() : getRandomMove();
+                } else {
+                    move = getBestMove(); // Impossible
+                }
+
+                if (move !== undefined) {
+                    makeMove(move, 'O');
+                    if (checkWin('O')) {
+                        endGame('O');
+                    } else if (board.every(cell => cell !== null)) {
+                        endGame('draw');
+                    } else {
+                        currentPlayer = 'X';
+                    }
+                }
+                isThinking = false;
+            }, 800 + Math.random() * 1000);
+        }
+
+        function getRandomMove() {
+            const available = board.map((v, i) => v === null ? i : null).filter(v => v !== null);
+            return available[Math.floor(Math.random() * available.length)];
+        }
+
+        // Minimax Algorithm
+        function getBestMove() {
+            let bestScore = -Infinity;
+            let move;
+            for (let i = 0; i < 9; i++) {
+                if (board[i] === null) {
+                    board[i] = 'O';
+                    let score = minimax(board, 0, false);
+                    board[i] = null;
+                    if (score > bestScore) {
+                        bestScore = score;
+                        move = i;
+                    }
+                }
+            }
+            return move;
+        }
+
+        const scoresMinimax = { O: 10, X: -10, draw: 0 };
+
+        function minimax(tempBoard, depth, isMaximizing) {
+            if (checkWin('O', tempBoard)) return scoresMinimax.O;
+            if (checkWin('X', tempBoard)) return scoresMinimax.X;
+            if (tempBoard.every(c => c !== null)) return scoresMinimax.draw;
+
+            if (isMaximizing) {
+                let bestScore = -Infinity;
+                for (let i = 0; i < 9; i++) {
+                    if (tempBoard[i] === null) {
+                        tempBoard[i] = 'O';
+                        let score = minimax(tempBoard, depth + 1, false);
+                        tempBoard[i] = null;
+                        bestScore = Math.max(score, bestScore);
+                    }
+                }
+                return bestScore;
+            } else {
+                let bestScore = Infinity;
+                for (let i = 0; i < 9; i++) {
+                    if (tempBoard[i] === null) {
+                        tempBoard[i] = 'X';
+                        let score = minimax(tempBoard, depth + 1, true);
+                        tempBoard[i] = null;
+                        bestScore = Math.min(score, bestScore);
+                    }
+                }
+                return bestScore;
+            }
+        }
+
+        // --- Effects ---
+        function launchConfetti() {
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 70%, 50%)`;
+                confetti.style.top = '-10px';
+                confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+                document.body.appendChild(confetti);
+
+                const animation = confetti.animate([
+                    { top: '-10px', opacity: 1 },
+                    { top: '100vh', opacity: 0, transform: `rotate(${Math.random() * 1000}deg) translateX(${Math.random() * 200 - 100}px)` }
+                ], {
+                    duration: 2000 + Math.random() * 3000,
+                    easing: 'cubic-bezier(0, .9, .57, 1)'
+                });
+
+                animation.onfinish = () => confetti.remove();
+            }
+        }
+
+        // Initial Setup
+        setMode('pve');
+    </script>
+</body>
+</html>
+
+
