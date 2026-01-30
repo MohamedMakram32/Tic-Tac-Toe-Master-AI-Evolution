@@ -12,17 +12,25 @@ let scores = {
 
 // Load scores from localStorage
 function loadScores() {
-    const savedScores = localStorage.getItem('scores');
-    if (savedScores) {
-        scores = JSON.parse(savedScores);
-        updateScoreDisplay();
+    try {
+        const savedScores = localStorage.getItem('scores');
+        if (savedScores) {
+            scores = JSON.parse(savedScores);
+            updateScoreDisplay();
+        }
+    } catch (e) {
+        console.warn('Could not load scores from localStorage:', e);
     }
 }
 
 // Save scores to localStorage
 function saveScores() {
-    localStorage.setItem('scores', JSON.stringify(scores));
-    updateScoreDisplay();
+    try {
+        localStorage.setItem('scores', JSON.stringify(scores));
+        updateScoreDisplay();
+    } catch (e) {
+        console.warn('Could not save scores to localStorage:', e);
+    }
 }
 
 // Update score display
@@ -64,8 +72,14 @@ function initGame() {
     document.querySelectorAll('.language-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const lang = btn.getAttribute('data-lang');
-            localStorage.setItem('selectedLanguage', lang);
-            updateLanguage();
+            try {
+                localStorage.setItem('selectedLanguage', lang);
+                updateLanguage();
+            } catch (e) {
+                console.warn('Could not save language preference:', e);
+                // Still update the language even if localStorage fails
+                updateLanguage();
+            }
             showScreen('modeScreen');
         });
     });
@@ -460,7 +474,8 @@ function createConfetti() {
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        confettiPieces.forEach((piece, index) => {
+        for (let i = confettiPieces.length - 1; i >= 0; i--) {
+            const piece = confettiPieces[i];
             ctx.beginPath();
             ctx.lineWidth = piece.d / 2;
             ctx.strokeStyle = piece.color;
@@ -470,12 +485,12 @@ function createConfetti() {
             
             piece.tiltAngle += piece.tiltAngleIncremental;
             piece.y += (Math.cos(piece.d) + 3 + piece.d / 2) / 2;
-            piece.tilt = Math.sin(piece.tiltAngle - index / 3) * 15;
+            piece.tilt = Math.sin(piece.tiltAngle - i / 3) * 15;
             
             if (piece.y > canvas.height) {
-                confettiPieces.splice(index, 1);
+                confettiPieces.splice(i, 1);
             }
-        });
+        }
         
         if (confettiPieces.length > 0) {
             requestAnimationFrame(draw);

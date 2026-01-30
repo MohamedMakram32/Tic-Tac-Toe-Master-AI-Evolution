@@ -585,8 +585,13 @@ const translations = {
 
 // Get translation
 function t(key, replacements = {}) {
-    const currentLang = localStorage.getItem('selectedLanguage') || 'en';
-    let text = translations[currentLang][key] || translations['en'][key] || key;
+    let currentLang;
+    try {
+        currentLang = localStorage.getItem('selectedLanguage') || 'en';
+    } catch (e) {
+        currentLang = 'en';
+    }
+    let text = translations[currentLang] && translations[currentLang][key] ? translations[currentLang][key] : translations['en'][key] || key;
     
     // Replace placeholders
     Object.keys(replacements).forEach(placeholder => {
