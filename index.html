@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic-Tac-Toe Master: AI Evolution</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Language Selection Screen -->
+    <div id="languageScreen" class="screen active">
+        <div class="container">
+            <h1 class="game-title">Tic-Tac-Toe Master</h1>
+            <h2 class="subtitle" data-i18n="selectLanguage">Select Your Language</h2>
+            <div class="language-grid">
+                <button class="language-btn" data-lang="en">🇬🇧 English</button>
+                <button class="language-btn" data-lang="ar">🇸🇦 العربية</button>
+                <button class="language-btn" data-lang="es">🇪🇸 Español</button>
+                <button class="language-btn" data-lang="fr">🇫🇷 Français</button>
+                <button class="language-btn" data-lang="de">🇩🇪 Deutsch</button>
+                <button class="language-btn" data-lang="it">🇮🇹 Italiano</button>
+                <button class="language-btn" data-lang="pt">🇵🇹 Português</button>
+                <button class="language-btn" data-lang="ru">🇷🇺 Русский</button>
+                <button class="language-btn" data-lang="zh">🇨🇳 中文</button>
+                <button class="language-btn" data-lang="ja">🇯🇵 日本語</button>
+                <button class="language-btn" data-lang="ko">🇰🇷 한국어</button>
+                <button class="language-btn" data-lang="hi">🇮🇳 हिन्दी</button>
+                <button class="language-btn" data-lang="tr">🇹🇷 Türkçe</button>
+                <button class="language-btn" data-lang="nl">🇳🇱 Nederlands</button>
+                <button class="language-btn" data-lang="pl">🇵🇱 Polski</button>
+                <button class="language-btn" data-lang="sv">🇸🇪 Svenska</button>
+                <button class="language-btn" data-lang="no">🇳🇴 Norsk</button>
+                <button class="language-btn" data-lang="da">🇩🇰 Dansk</button>
+                <button class="language-btn" data-lang="fi">🇫🇮 Suomi</button>
+                <button class="language-btn" data-lang="el">🇬🇷 Ελληνικά</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mode Selection Screen -->
+    <div id="modeScreen" class="screen">
+        <div class="container">
+            <h1 class="game-title" data-i18n="gameTitle">Tic-Tac-Toe Master</h1>
+            <h2 class="subtitle" data-i18n="selectMode">Select Game Mode</h2>
+            <div class="mode-buttons">
+                <button class="mode-btn" id="vsComputerBtn">
+                    <span class="icon">🤖</span>
+                    <span data-i18n="vsComputer">VS Computer</span>
+                </button>
+                <button class="mode-btn" id="vsTwoPlayersBtn">
+                    <span class="icon">👥</span>
+                    <span data-i18n="vsTwoPlayers">VS Two Players</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Difficulty Selection Screen -->
+    <div id="difficultyScreen" class="screen">
+        <div class="container">
+            <h1 class="game-title" data-i18n="gameTitle">Tic-Tac-Toe Master</h1>
+            <h2 class="subtitle" data-i18n="selectDifficulty">Select Difficulty Level</h2>
+            <div class="difficulty-grid">
+                <button class="difficulty-btn easy" data-level="1">
+                    <span class="level-number">1</span>
+                    <span class="level-name" data-i18n="easy">Easy</span>
+                </button>
+                <button class="difficulty-btn easy" data-level="2">
+                    <span class="level-number">2</span>
+                    <span class="level-name" data-i18n="easy">Easy</span>
+                </button>
+                <button class="difficulty-btn easy" data-level="3">
+                    <span class="level-number">3</span>
+                    <span class="level-name" data-i18n="easy">Easy</span>
+                </button>
+                <button class="difficulty-btn easy" data-level="4">
+                    <span class="level-number">4</span>
+                    <span class="level-name" data-i18n="easy">Easy</span>
+                </button>
+                <button class="difficulty-btn medium" data-level="5">
+                    <span class="level-number">5</span>
+                    <span class="level-name" data-i18n="medium">Medium</span>
+                </button>
+                <button class="difficulty-btn medium" data-level="6">
+                    <span class="level-number">6</span>
+                    <span class="level-name" data-i18n="medium">Medium</span>
+                </button>
+                <button class="difficulty-btn medium" data-level="7">
+                    <span class="level-number">7</span>
+                    <span class="level-name" data-i18n="medium">Medium</span>
+                </button>
+                <button class="difficulty-btn medium" data-level="8">
+                    <span class="level-number">8</span>
+                    <span class="level-name" data-i18n="medium">Medium</span>
+                </button>
+                <button class="difficulty-btn hard" data-level="9">
+                    <span class="level-number">9</span>
+                    <span class="level-name" data-i18n="veryHard">Very Hard</span>
+                </button>
+                <button class="difficulty-btn hard" data-level="10">
+                    <span class="level-number">10</span>
+                    <span class="level-name" data-i18n="impossible">Impossible</span>
+                </button>
+            </div>
+            <button class="back-btn" id="backToMode" data-i18n="back">Back</button>
+        </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="gameScreen" class="screen">
+        <div class="game-container">
+            <div class="game-header">
+                <div class="score-board">
+                    <div class="score-item">
+                        <span data-i18n="wins">Wins</span>
+                        <span id="winsScore">0</span>
+                    </div>
+                    <div class="score-item">
+                        <span data-i18n="losses">Losses</span>
+                        <span id="lossesScore">0</span>
+                    </div>
+                    <div class="score-item">
+                        <span data-i18n="draws">Draws</span>
+                        <span id="drawsScore">0</span>
+                    </div>
+                </div>
+                <button class="new-game-btn" id="newGameBtn" data-i18n="newGame">New Game</button>
+            </div>
+
+            <div class="game-content">
+                <!-- Robot Character -->
+                <div class="robot-container" id="robotContainer">
+                    <div class="robot">
+                        <div class="robot-head">
+                            <div class="robot-antenna"></div>
+                            <div class="robot-face">
+                                <div class="robot-eyes">
+                                    <div class="robot-eye left"></div>
+                                    <div class="robot-eye right"></div>
+                                </div>
+                                <div class="robot-mouth"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="robot-speech-bubble" id="robotSpeech">
+                        <p id="robotText"></p>
+                    </div>
+                </div>
+
+                <!-- Game Board -->
+                <div class="board-wrapper">
+                    <div class="status" id="status">
+                        <span id="statusText"></span>
+                    </div>
+                    <div class="board" id="board">
+                        <div class="cell" data-index="0"></div>
+                        <div class="cell" data-index="1"></div>
+                        <div class="cell" data-index="2"></div>
+                        <div class="cell" data-index="3"></div>
+                        <div class="cell" data-index="4"></div>
+                        <div class="cell" data-index="5"></div>
+                        <div class="cell" data-index="6"></div>
+                        <div class="cell" data-index="7"></div>
+                        <div class="cell" data-index="8"></div>
+                    </div>
+                    <div class="game-info">
+                        <p id="gameMode"></p>
+                        <p id="difficultyLevel"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fireworks Container -->
+    <div class="fireworks-container" id="fireworks"></div>
+
+    <!-- Confetti Container -->
+    <canvas id="confetti-canvas"></canvas>
+
+    <script src="translations.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
